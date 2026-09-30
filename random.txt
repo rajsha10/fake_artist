@@ -1,234 +1,115 @@
-public handleDrawMove(playerId: string, point: Point): void {
-    if (!this.currentStroke || this.currentStroke.playerId !== playerId) return;
-    if (this.activePlayerId !== playerId) return;
-    this.currentStroke.points.push(point);
-    this.broadcast({
-      type: 'STROKE_POINT',
-      strokeId: this.currentStroke.id,
-      point,
-    });
-  }
-  public handleDrawEnd(playerId: string): void {
-    if (this.activePlayerId !== playerId) return;
-    const cp = this.clients.get(playerId);
-    if (cp) {
-      cp.player.hasDrawnThisRound = true;
-    }
-    if (this.currentStroke) {
-      this.strokes.push(this.currentStroke);
-      this.broadcast({
-        type: 'STROKE_FINISH',
-        stroke: this.currentStroke,
-      });
-      this.currentStroke = null;
-    }
-    // 1 continuous stroke complete -> advance turn!
-    this.advanceTurn();
-  }
-  // ==========================================
-  // 🗳️ VOTING & SHOWDOWN
-  // ==========================================
-  private startVotingPhase(): void {
-    this.phase = 'VOTING';
-    this.activePlayerId = null;
-    // Reset votes
-    for (const cp of this.clients.values()) {
-      cp.player.votedForId = null;
-    }
-    // 30 seconds to discuss and vote
-    this.startCountdown(30, () => {
-      this.evaluateVotes();
-    });
-    this.broadcastState();
-  }
-  public handleVote(voterId: string, suspectId: string): void {
-    if (this.phase !== 'VOTING') return;
-    const voter = this.clients.get(voterId);
-    if (!voter || !this.clients.has(suspectId)) return;
-    voter.player.votedForId = suspectId;
-    this.broadcastState();
-    // Check if everyone has voted
-    const allVoted = Array.from(this.clients.values()).every((c) => c.player.votedForId !== null);
-    if (allVoted) {
-      this.clearTimer();
-      this.evaluateVotes();
-    }
-  }
-  private evaluateVotes(): void {
-    // Tally votes: suspectId -> list of voter names
-    const voteCounts: Record<string, number> = {};
-    const voteMap: Record<string, string[]> = {};
-    for (const [id, cp] of this.clients.entries()) {
-      const suspectId = cp.player.votedForId;
-      if (suspectId) {
-        voteCounts[suspectId] = (voteCounts[suspectId] || 0) + 1;
-        if (!voteMap[suspectId]) voteMap[suspectId] = [];
-        voteMap[suspectId].push(cp.player.name);
-      }
-    }
-    // Find the player with the most votes
-    let maxVotes = -1;
-    let mostVotedId: string | null = null;
-    let isTie = false;
-    for (const [suspectId, count] of Object.entries(voteCounts)) {
-      if (count > maxVotes) {
-        maxVotes = count;
-        mostVotedId = suspectId;
-        isTie = false;
-      } else if (count === maxVotes) {
-        isTie = true;
-      }
-    }
-    const fakeArtistCaught = !isTie && mostVotedId === this.fakeArtistId;
-    this.accusedPlayerId = mostVotedId;
-    this.broadcast({
-      type: 'VOTING_RESULT',
-      votes: voteMap,
-      fakeArtistCaught,
-    });
-    if (fakeArtistCaught && mostVotedId) {
-      // Fake Artist was caught -> Move to FINAL_GUESS Showdown!
-      this.startFinalGuessShowdown();
-    } else {
-      // Fake Artist was NOT caught (either escaped or tied vote) -> Fake Artist wins!
-      this.endGame(
-        'FAKE_ARTIST',
-        `The Real Artists failed to identify the Fake Artist! ${this.clients.get(this.fakeArtistId)?.player.name} was the Fake Artist.`
-      );
-    }
-  }
-  private startFinalGuessShowdown(): void {
-    this.phase = 'FINAL_GUESS';
-    this.activePlayerId = this.fakeArtistId;
-    // 25 seconds for the Fake Artist to make their final guess
-    this.startCountdown(25, () => {
-      // If time runs out, Real Artists win
-      this.endGame(
-        'REAL_ARTISTS',
-        `Time ran out! The Fake Artist (${this.clients.get(this.fakeArtistId)?.player.name}) failed to guess the secret word "${this.secretWord}".`
-      );
-    });
-    this.broadcastState();
-  }
-  public handleFinalGuess(fakeArtistId: string, guess: string): void {
-    if (this.phase !== 'FINAL_GUESS' || this.fakeArtistId !== fakeArtistId) return;
-    this.clearTimer();
-    const isCorrect = WordManager.isGuessCorrect(guess, this.secretWord);
-    if (isCorrect) {
-      this.endGame(
-        'FAKE_ARTIST',
-        `The Fake Artist guessed correctly! The secret word was "${this.secretWord}".`
-      );
-    } else {
-      this.endGame(
-        'REAL_ARTISTS',
-        `The Fake Artist guessed "${guess}", but the secret word was "${this.secretWord}". Real Artists win!`
-      );
-    }
-  }
-  private endGame(winner: 'REAL_ARTISTS' | 'FAKE_ARTIST', reason: string): void {
-    this.phase = 'GAME_OVER';
-    this.winner = winner;
-    this.winnerReason = reason;
-    this.activePlayerId = null;
-    // Award score points
-    if (winner === 'FAKE_ARTIST') {
-      const fa = this.clients.get(this.fakeArtistId);
-      if (fa) fa.player.score += 2;
-    } else {
-      for (const [id, cp] of this.clients.entries()) {
-        if (id !== this.fakeArtistId) {
-          cp.player.score += 1;
+// server/server.ts
+
+import { WebSocketServer, WebSocket } from 'ws';
+import type { ClientMessage } from '../types/game';
+import { RoomManager } from './game/RoomManager';
+
+const PORT = 8080;
+const wss = new WebSocketServer({ port: PORT });
+const roomManager = RoomManager.getInstance();
+
+console.log(`🎨 Fake Artist Game Server running on ws://localhost:${PORT}`);
+
+wss.on('connection', (socket: WebSocket) => {
+  console.log('[Server] New WebSocket connection established');
+
+  socket.on('message', (rawPayload: Buffer) => {
+    try {
+      const msg: ClientMessage = JSON.parse(rawPayload.toString());
+
+      // 1. Handle JOIN_ROOM (Initial Handshake)
+      if (msg.type === 'JOIN_ROOM') {
+        const { roomId, name } = msg;
+        if (!roomId || !name) {
+          socket.send(
+            JSON.stringify({
+              type: 'ERROR',
+              message: 'Room ID and Name are required to join!',
+            })
+          );
+          return;
         }
+
+        const normalizedRoomId = roomId.trim().toUpperCase();
+        const playerId = `p-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        const room = roomManager.getOrCreateRoom(normalizedRoomId);
+
+        // Register session mapping & add player to the authoritative room
+        roomManager.registerSession(socket, normalizedRoomId, playerId);
+        room.addPlayer(playerId, name.trim(), socket);
+
+        console.log(`[Server] Player "${name}" (${playerId}) joined Room: ${normalizedRoomId}`);
+        return;
       }
-    }
-    this.broadcast({
-      type: 'GAME_RESULT',
-      winner,
-      secretWord: this.secretWord,
-      reason,
-    });
-    this.broadcastState();
-  }
-  public restartGame(hostId: string): void {
-    const host = this.clients.get(hostId);
-    if (!host || !host.player.isHost) return;
-    this.phase = 'LOBBY';
-    this.strokes = [];
-    this.currentStroke = null;
-    this.activePlayerId = null;
-    this.accusedPlayerId = null;
-    this.winner = null;
-    this.winnerReason = null;
-    this.clearTimer();
-    for (const cp of this.clients.values()) {
-      cp.player.hasDrawnThisRound = false;
-      cp.player.votedForId = null;
-      cp.role = undefined;
-    }
-    this.broadcastState();
-  }
-  // ==========================================
-  // ⏱️ TIMER UTILITIES
-  // ==========================================
-  private startCountdown(seconds: number, onComplete: () => void): void {
-    this.clearTimer();
-    this.timeLeft = seconds;
-    this.broadcast({ type: 'TIME_TICK', timeLeft: this.timeLeft });
-    this.timer = setInterval(() => {
-      this.timeLeft--;
-      this.broadcast({ type: 'TIME_TICK', timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) {
-        this.clearTimer();
-        onComplete();
+
+      // 2. All other actions require an authenticated session
+      const session = roomManager.getSession(socket);
+      if (!session) {
+        socket.send(
+          JSON.stringify({
+            type: 'ERROR',
+            message: 'You must join a room first!',
+          })
+        );
+        return;
       }
-    }, 1000);
-  }
-  private clearTimer(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
-  }
-  // ==========================================
-  // 📡 MESSAGING & BROADCASTING
-  // ==========================================
-  public getPublicState(): PublicGameState {
-    return {
-      phase: this.phase,
-      category: this.category,
-      currentRound: this.currentRound,
-      activePlayerId: this.activePlayerId,
-      turnTimeLeft: this.timeLeft,
-      players: Array.from(this.clients.values()).map((cp) => cp.player),
-      strokes: this.strokes,
-      hostId: this.getHostId(),
-      accusedPlayerId: this.accusedPlayerId,
-      winner: this.winner,
-      winnerReason: this.winnerReason,
-    };
-  }
-  public broadcastState(): void {
-    this.broadcast({
-      type: 'STATE_UPDATE',
-      state: this.getPublicState(),
-    });
-  }
-  public broadcast(message: ServerMessage): void {
-    const payload = JSON.stringify(message);
-    for (const cp of this.clients.values()) {
-      if (cp.socket.readyState === WebSocket.OPEN) {
-        cp.socket.send(payload);
+
+      const { roomId, playerId } = session;
+      const room = roomManager.getRoom(roomId);
+      if (!room) {
+        socket.send(
+          JSON.stringify({
+            type: 'ERROR',
+            message: 'Room no longer exists!',
+          })
+        );
+        return;
       }
+
+      // 3. Dispatch authoritative game actions
+      switch (msg.type) {
+        case 'START_GAME':
+          room.startGame(playerId, msg.category, msg.word);
+          break;
+
+        case 'DRAW_START':
+          room.handleDrawStart(playerId, msg.point);
+          break;
+
+        case 'DRAW_MOVE':
+          room.handleDrawMove(playerId, msg.point);
+          break;
+
+        case 'DRAW_END':
+          room.handleDrawEnd(playerId);
+          break;
+
+        case 'SUBMIT_VOTE':
+          room.handleVote(playerId, msg.suspectId);
+          break;
+
+        case 'SUBMIT_FINAL_GUESS':
+          room.handleFinalGuess(playerId, msg.guess);
+          break;
+
+        case 'RESTART_GAME':
+          room.restartGame(playerId);
+          break;
+
+        default:
+          console.warn(`[Server] Unhandled message type:`, msg);
+      }
+    } catch (err) {
+      console.error('[Server] Failed to process message:', err);
     }
-  }
-  public sendToSocket(socket: WebSocket, message: ServerMessage): void {
-    if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-    }
-  }
-}
-👉 Your Turn
-Review the flow of GameRoom.ts (adding players → picking roles → 1-stroke turns → voting → final guess).
-Create server/rooms/GameRoom.ts and add this code.
-Once created, let me know and we will write Step 4: RoomManager.ts and Step 5: server.ts!
+  });
+
+  socket.on('close', () => {
+    roomManager.handleDisconnect(socket);
+  });
+
+  socket.on('error', (err) => {
+    console.error('[Server] Socket error:', err);
+    roomManager.handleDisconnect(socket);
+  });
+});
