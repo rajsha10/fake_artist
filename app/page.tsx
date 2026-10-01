@@ -1,5 +1,5 @@
-import CanvasPage from './canvasPage/CanvasPage';
+import LandingPage from './landing/LandingPage';
 
 export default function Home() {
-  return <CanvasPage />;
+  return <LandingPage />;
 }

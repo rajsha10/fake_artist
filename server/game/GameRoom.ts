@@ -167,7 +167,7 @@ export class GameRoom {
     private startTurn(): void {
         if (this.currentTurnIndex >= this.turnOrder.length) {
 
-            if (this.currentRound) {
+            if (this.currentRound === 1) {
                 this.startRound(2);
             } else {
                 this.startVotingPhase();
@@ -248,6 +248,7 @@ export class GameRoom {
             });
             this.currentStroke = null;
         }
+        this.advanceTurn();
     }
 
 
@@ -260,7 +261,7 @@ export class GameRoom {
             cp.player.votedForId = null;
         }
 
-        this.startCountdown(30, () => {
+        this.startCountdown(10, () => {
             this.evaluateVotes();
         });
         this.broadcastState();
@@ -407,7 +408,7 @@ export class GameRoom {
         }
     }
 
-    private startCountdown(seconds: number, onComplete: () => void ): void {
+    private startCountdown(seconds: number, onComplete: () => void): void {
         this.clearTimer();
         this.timeLeft = seconds;
         this.broadcast({
@@ -449,7 +450,7 @@ export class GameRoom {
             phase: this.phase,
             category: this.category,
             currentRound: this.currentRound,
-            activePlayerId: this.accusedPlayerId,
+            activePlayerId: this.activePlayerId,
             turnTimeLeft: this.timeLeft,
             players: Array.from(this.clients.values()).map((cp) => cp.player),
             strokes: this.strokes,
