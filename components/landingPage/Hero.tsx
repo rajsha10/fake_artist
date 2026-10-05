@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
+import JoinGame from '@/components/Game/JoinGame';
+import CreateGame from '@/components/Game/CreateGame';
 
 function DoodleQuestionMark({
   className,
@@ -42,6 +44,17 @@ function DoodleQuestionMark({
 }
 
 export default function Hero() {
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleJoinGame = (roomCode: string, nickname: string) => {
+    window.location.href = `/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`;
+  };
+
+  const handleCreateGame = (roomCode: string, nickname: string) => {
+    window.location.href = `/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`;
+  };
+
   return (
     <section
       className="relative overflow-hidden"
@@ -55,7 +68,6 @@ export default function Hero() {
           fill
           priority
           className="object-cover object-center"
-          quality={95}
         />
       </div>
 
@@ -155,12 +167,6 @@ export default function Hero() {
 
           {/* Characters 3D container & Layered Ground Shadows */}
           <div className="characters-wrapper">
-            
-            {/* Multi-layered 3D ground occlusion and contact shadows */}
-            <div className="ground-shadow-ambient" />
-            <div className="ground-shadow-mid" />
-            <div className="ground-shadow-contact" />
-
             <Image
               src="/assets/characters.webp"
               alt="Four cartoon bird characters holding paper signs"
@@ -168,7 +174,6 @@ export default function Hero() {
               height={349}
               priority
               className="characters-img"
-              quality={95}
             />
           </div>
 
@@ -184,11 +189,21 @@ export default function Hero() {
               <path d="M6 58 L12 68 L20 60" stroke="#4CAF50" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
 
-            <button className="hero-btn btn-green">JOIN GAME</button>
+            <button 
+              className="hero-btn btn-green"
+              onClick={() => setIsJoinModalOpen(true)}
+            >
+              JOIN GAME
+            </button>
             
             {/* Middle button with blue bottom arrow */}
             <div className="btn-center-wrapper">
-              <button className="hero-btn btn-blue">CREATE ROOM</button>
+              <button 
+                className="hero-btn btn-blue"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                CREATE ROOM
+              </button>
               {/* Blue curved arrow curving under CREATE ROOM pointing up-right */}
               <svg className="btn-arrow-bottom" viewBox="0 0 70 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M 10 12 C 22 30, 50 28, 62 10" stroke="#38BDF8" strokeWidth="3.2" strokeLinecap="round" fill="none"/>
@@ -206,6 +221,20 @@ export default function Hero() {
 
           </div>
         </div>
+
+        {/* ── Join Game Modal Popup ── */}
+        <JoinGame
+          isOpen={isJoinModalOpen}
+          onClose={() => setIsJoinModalOpen(false)}
+          onJoin={handleJoinGame}
+        />
+
+        {/* ── Create Game Modal Popup ── */}
+        <CreateGame
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onCreate={handleCreateGame}
+        />
 
       </div>
 

@@ -45,3 +45,14 @@ body {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px #2d2d2d;
 }
+
+@font-face {
+  font-family: 'CfCrayons';
+  src: url('/fonts/CfCrayonsRegular-2Gl3.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@theme {
+  --font-crayons: 'CfCrayons', sans-serif;
+}
