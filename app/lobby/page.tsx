@@ -7,6 +7,9 @@ import Image from 'next/image';
 import ReusableButton from '../../components/Common/ReusableButton';
 import RoleReveal from '../../components/Lobby/RoleReveal';
 import GameCanvas from '../../components/Lobby/GameCanvas';
+import VotingScreen from '../../components/Lobby/VotingScreen';
+import FinalGuessScreen from '../../components/Lobby/FinalGuessScreen';
+import GameOverScreen from '../../components/Game/GameOverScreen';
 import styles from './Lobby.module.css';
 
 // Load the custom crayon font
@@ -41,12 +44,18 @@ function LobbyContent() {
 
   const [activePlayers, setActivePlayers] = useState<any[]>([]);
   const [phase, setPhase] = useState<string>('LOBBY');
+  const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [roleInfo, setRoleInfo] = useState<{ role: string; category: string; word: string } | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [votingResults, setVotingResults] = useState<{ votes: Record<string, string[]>, fakeArtistCaught: boolean } | null>(null);
+  const [accusedPlayerId, setAccusedPlayerId] = useState<string | null>(null);
+  const [gameResult, setGameResult] = useState<{ winner: string; secretWord: string; reason: string } | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
 
-  const isCurrentUserHost = activePlayers.find((p) => p.name === playerName)?.isHost || false;
+  const myPlayer = activePlayers.find((p) => p.name === playerName);
+  const myPlayerId = myPlayer?.id || '';
+  const isCurrentUserHost = myPlayer?.isHost || false;
   const canStartGame = activePlayers.length >= 3;
 
   useEffect(() => {
@@ -55,7 +64,7 @@ function LobbyContent() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    ws.onopen = () => {
+    const handleOpen = () => {
       console.log('Connected to WebSocket server');
       // Join room upon connection
       ws.send(JSON.stringify({
@@ -65,7 +74,7 @@ function LobbyContent() {
       }));
     };
 
-    ws.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         const msg = JSON.parse(event.data);
         
@@ -73,15 +82,22 @@ function LobbyContent() {
           if (msg.state.phase) {
             setPhase(msg.state.phase);
           }
-          
+          if (msg.state.activePlayerId !== undefined) {
+            setActivePlayerId(msg.state.activePlayerId);
+          }
+          if (msg.state.accusedPlayerId !== undefined) {
+            setAccusedPlayerId(msg.state.accusedPlayerId);
+          }
           if (msg.state.players) {
             // Map server players to our avatar display list
             const updatedPlayers = msg.state.players.map((p: any, index: number) => ({
               id: p.id,
               name: p.name,
+              color: p.color,
               // Cycle through our 10 generated avatars based on index
               avatar: `/assets/Profiles/avatar_${(index % 10) + 1}.jpg`,
-              isHost: p.isHost
+              isHost: p.isHost,
+              score: p.score
             }));
             setActivePlayers(updatedPlayers);
           }
@@ -93,6 +109,17 @@ function LobbyContent() {
           });
         } else if (msg.type === 'TIME_TICK') {
           setTimeLeft(msg.timeLeft);
+        } else if (msg.type === 'VOTING_RESULT') {
+          setVotingResults({
+            votes: msg.votes,
+            fakeArtistCaught: msg.fakeArtistCaught
+          });
+        } else if (msg.type === 'GAME_RESULT') {
+          setGameResult({
+            winner: msg.winner,
+            secretWord: msg.secretWord,
+            reason: msg.reason
+          });
         } else if (msg.type === 'ERROR') {
           console.error('Server error:', msg.message);
           alert(`Error: ${msg.message}`);
@@ -102,11 +129,18 @@ function LobbyContent() {
       }
     };
 
-    ws.onerror = (error) => {
+    const handleError = (error: Event) => {
       console.warn('WebSocket encountered an issue (may be due to Strict Mode fast-refresh):', error);
     };
 
+    ws.addEventListener('open', handleOpen);
+    ws.addEventListener('message', handleMessage);
+    ws.addEventListener('error', handleError);
+
     return () => {
+      ws.removeEventListener('open', handleOpen);
+      ws.removeEventListener('message', handleMessage);
+      ws.removeEventListener('error', handleError);
       ws.close();
     };
   }, [roomCode, playerName]);
@@ -137,11 +171,27 @@ function LobbyContent() {
     router.push('/');
   };
 
-  // 1. Render DRAWING Phase (Canvas UI)
-  if (phase.startsWith('DRAWING')) {
+  // 1. Render DRAWING Phase (Canvas UI) and VOTING Phase
+  if (phase.startsWith('DRAWING') || phase === 'VOTING') {
     return (
       <main className={`${crayonsFont.className} ${styles.container}`} style={{ justifyContent: 'center' }}>
-        <GameCanvas ws={wsRef.current} phase={phase} />
+        <GameCanvas 
+          ws={wsRef.current} 
+          phase={phase}
+          myPlayerId={myPlayerId}
+          activePlayerId={activePlayerId}
+          timeLeft={timeLeft}
+          players={activePlayers}
+          roleInfo={roleInfo}
+        />
+        {phase === 'VOTING' && (
+          <VotingScreen 
+            ws={wsRef.current} 
+            players={activePlayers}
+            myPlayerId={myPlayerId}
+            timeLeft={timeLeft}
+          />
+        )}
       </main>
     );
   }
@@ -154,6 +204,37 @@ function LobbyContent() {
       </main>
     );
   }
+
+  // Render FINAL GUESS Phase
+  if (phase === 'FINAL_GUESS') {
+    return (
+      <main className={`${crayonsFont.className} ${styles.container}`} style={{ justifyContent: 'center' }}>
+        <FinalGuessScreen 
+          ws={wsRef.current} 
+          myPlayerId={myPlayerId}
+          accusedPlayerId={accusedPlayerId}
+          timeLeft={timeLeft}
+          roleInfo={roleInfo}
+        />
+      </main>
+    );
+  }
+
+  // Render GAME OVER Phase
+  if (phase === 'GAME_OVER') {
+    return (
+      <main className={`${crayonsFont.className} ${styles.container}`} style={{ justifyContent: 'center' }}>
+        <GameOverScreen 
+          ws={wsRef.current} 
+          isHost={isCurrentUserHost}
+          gameResult={gameResult}
+          players={activePlayers}
+        />
+      </main>
+    );
+  }
+
+
 
   // 3. Render LOBBY Phase
   return (

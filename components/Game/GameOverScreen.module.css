@@ -1,0 +1,112 @@
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: white;
+  border: 4px solid #000;
+  border-radius: 16px;
+  padding: 40px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.8);
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.crayonBanner {
+  font-size: 2.5rem;
+  font-weight: bold;
+  padding: 10px 30px;
+  border: 4px solid #000;
+  border-radius: 20px;
+  transform: rotate(-2deg);
+  margin-bottom: 10px;
+  box-shadow: 4px 4px 0px #000;
+}
+
+.greenBanner {
+  background-color: #55efc4;
+  color: #000;
+}
+
+.redBanner {
+  background-color: #ff7675;
+  color: #000;
+}
+
+.secretWordSection p {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.highlightedWord {
+  font-size: 3rem;
+  font-weight: bold;
+  background-color: #ffeaa7;
+  display: inline-block;
+  padding: 5px 20px;
+  border-radius: 4px;
+  margin: 10px 0;
+  transform: rotate(1deg);
+  border-bottom: 4px solid #fdcb6e;
+}
+
+.reasonText {
+  font-size: 1.2rem;
+  margin-top: 10px;
+}
+
+.buttonContainer {
+  margin-top: 20px;
+}
+
+.waitingText {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #555;
+}
+
+.confetti1, .confetti2, .confetti3, .confetti4 {
+  position: absolute;
+  font-size: 2rem;
+}
+
+.confetti1 {
+  top: 20px;
+  left: 30px;
+  transform: rotate(-15deg);
+}
+
+.confetti2 {
+  top: 30px;
+  right: 20px;
+  transform: rotate(25deg);
+}
+
+.confetti3 {
+  bottom: 80px;
+  left: 20px;
+  transform: rotate(10deg);
+}
+
+.confetti4 {
+  bottom: 40px;
+  right: -10px;
+  transform: rotate(-20deg);
+}

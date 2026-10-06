@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import JoinGame from '@/components/Game/JoinGame';
 import CreateGame from '@/components/Game/CreateGame';
 
@@ -44,15 +45,21 @@ function DoodleQuestionMark({
 }
 
 export default function Hero() {
+  const router = useRouter();
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleJoinGame = (roomCode: string, nickname: string) => {
-    window.location.href = `/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`;
+    router.push(`/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`);
   };
 
   const handleCreateGame = (roomCode: string, nickname: string) => {
-    window.location.href = `/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`;
+    router.push(`/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`);
   };
 
   return (
@@ -223,18 +230,22 @@ export default function Hero() {
         </div>
 
         {/* ── Join Game Modal Popup ── */}
-        <JoinGame
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          onJoin={handleJoinGame}
-        />
+        {isMounted && (
+          <JoinGame
+            isOpen={isJoinModalOpen}
+            onClose={() => setIsJoinModalOpen(false)}
+            onJoin={handleJoinGame}
+          />
+        )}
 
         {/* ── Create Game Modal Popup ── */}
-        <CreateGame
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onCreate={handleCreateGame}
-        />
+        {isMounted && (
+          <CreateGame
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onCreate={handleCreateGame}
+          />
+        )}
 
       </div>
 

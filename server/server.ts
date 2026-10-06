@@ -39,7 +39,6 @@ wss.on('connection', (socket: WebSocket) => {
                 return;
             }
 
-            //other actions suing authenticated session
             const session = roomManager.getSession(socket);
             if (!session) {
                 socket.send(
