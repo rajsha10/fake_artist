@@ -59,8 +59,8 @@ function LobbyContent() {
   const canStartGame = activePlayers.length >= 3;
 
   useEffect(() => {
-    // Connect to WebSocket server running on port 8080
-    const wsUrl = `ws://${window.location.hostname}:8080`;
+    // Use environment variable for production, fallback to local dev server
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || `ws://${window.location.hostname}:8080`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
