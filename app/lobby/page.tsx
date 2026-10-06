@@ -155,12 +155,27 @@ function LobbyContent() {
       alert('Need at least 3 players to start!');
       return;
     }
+
+    // Word Bank
+    const wordBank = {
+      'Animals': ['Cat', 'Dog', 'Elephant', 'Penguin', 'Shark', 'Lion', 'Giraffe', 'Octopus'],
+      'Food & Drinks': ['Pizza', 'Sushi', 'Taco', 'Hamburger', 'Ice Cream', 'Pancake', 'Coffee'],
+      'Everyday Objects': ['Guitar', 'Clock', 'Camera', 'Television', 'Toothbrush', 'Umbrella'],
+      'Places & Landmarks': ['Eiffel Tower', 'Pyramids', 'Hospital', 'School', 'Beach', 'Castle'],
+      'Vehicles': ['Rocket', 'Submarine', 'Helicopter', 'Bicycle', 'Train', 'Ambulance'],
+      'Fashion & Style': ['Sunglasses', 'Crown', 'Hoodie', 'Sneakers', 'Backpack', 'Watch']
+    };
+
+    const categories = Object.keys(wordBank);
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+    const wordsInCategory = wordBank[randomCategory as keyof typeof wordBank];
+    const randomWord = wordsInCategory[Math.floor(Math.random() * wordsInCategory.length)];
     
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'START_GAME',
-        category: 'Animals', // Default for now, could be dynamic later
-        word: 'Cat'          // Default for now, could be dynamic later
+        category: randomCategory,
+        word: randomWord
       }));
     } else {
       alert('WebSocket is not connected!');
