@@ -65,7 +65,7 @@ export default function Hero() {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ width: '100vw', height: '100dvh' }}
+      style={{ width: '100vw', height: '100dvh', minHeight: '480px' }}
     >
       {/* ── Background: full-cover notebook paper ── */}
       <div className="absolute inset-0 z-0">
@@ -157,22 +157,15 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* ── Characters section: 3D Depth + Multi-layer Ground Shadows + Floating Question Marks ── */}
+        {/* ── Characters section ── */}
         <div className="chars-section">
 
-          {/* Floating question marks around characters matching reference with 3D shadows */}
-          {/* Left side: Pink/Red ? + Purple ? */}
           <DoodleQuestionMark className="char-qmark cqm-pink"   color="#F472B6" />
           <DoodleQuestionMark className="char-qmark cqm-purple" color="#A855F7" />
-
-          {/* Above Green character: Double Green ?? */}
           <DoodleQuestionMark className="char-qmark cqm-green1" color="#4ADE80" />
           <DoodleQuestionMark className="char-qmark cqm-green2" color="#4ADE80" />
-
-          {/* Right side: Blue ? */}
           <DoodleQuestionMark className="char-qmark cqm-blue"   color="#38BDF8" />
 
-          {/* Characters 3D container & Layered Ground Shadows */}
           <div className="characters-wrapper">
             <Image
               src="/assets/characters.webp"
@@ -196,22 +189,21 @@ export default function Hero() {
               <path d="M6 58 L12 68 L20 60" stroke="#4CAF50" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
 
-            <button 
+            <button
               className="hero-btn btn-green"
               onClick={() => setIsJoinModalOpen(true)}
             >
               JOIN GAME
             </button>
-            
+
             {/* Middle button with blue bottom arrow */}
             <div className="btn-center-wrapper">
-              <button 
+              <button
                 className="hero-btn btn-blue"
                 onClick={() => setIsCreateModalOpen(true)}
               >
                 CREATE ROOM
               </button>
-              {/* Blue curved arrow curving under CREATE ROOM pointing up-right */}
               <svg className="btn-arrow-bottom" viewBox="0 0 70 35" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M 10 12 C 22 30, 50 28, 62 10" stroke="#38BDF8" strokeWidth="3.2" strokeLinecap="round" fill="none"/>
                 <path d="M 50 8 L 63 10 L 60 22" stroke="#38BDF8" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -229,7 +221,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* ── Join Game Modal Popup ── */}
+        {/* ── Modals ── */}
         {isMounted && (
           <JoinGame
             isOpen={isJoinModalOpen}
@@ -238,7 +230,6 @@ export default function Hero() {
           />
         )}
 
-        {/* ── Create Game Modal Popup ── */}
         {isMounted && (
           <CreateGame
             isOpen={isCreateModalOpen}
@@ -259,14 +250,16 @@ export default function Hero() {
           font-display: swap;
         }
 
-        /* ── Title ── */
+        /* ── Title wrapper ── */
         .hero-title-wrapper {
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: clamp(0.8rem, 2vh, 1.8rem) clamp(2.5rem, 6vw, 5.5rem) 0;
+          /* generous side padding so stars/qmark don't clip on phones */
+          padding: clamp(0.4rem, 1.5vh, 1.8rem) clamp(2rem, 6vw, 5.5rem) 0;
           flex-shrink: 0;
+          width: 100%;
         }
 
         .title-heading-box {
@@ -278,7 +271,8 @@ export default function Hero() {
 
         .hero-title {
           font-family: 'CfCrayons', 'Comic Sans MS', cursive;
-          font-size: clamp(2.2rem, 6vw, 5.2rem);
+          /* 8.5vw hits ~32px on 375px, ~44px on 520px, caps at 5.2rem on desktop */
+          font-size: clamp(1.85rem, 8.5vw, 5.2rem);
           font-weight: 900;
           line-height: 1;
           letter-spacing: 0.03em;
@@ -307,16 +301,11 @@ export default function Hero() {
           position: relative;
         }
 
-        /*
-          Arc curve: subtle parabola with peak at centre.
-          Layout order in h1:
-            1=F  2=A  3=K  4=E  5=space  6=A  7=R  8=T  9=I  10=S  11=T
-        */
+        /* Arc curve offsets */
         .hero-title > span:nth-child(1)  { transform: rotate(-2.0deg) translateY(  0px); }
         .hero-title > span:nth-child(2)  { transform: rotate( 1.8deg) translateY( -6px); }
         .hero-title > span:nth-child(3)  { transform: rotate(-1.5deg) translateY(-11px); }
         .hero-title > span:nth-child(4)  { transform: rotate( 2.2deg) translateY(-14px); }
-        /* space: nth-child 5 */
         .hero-title > span:nth-child(6)  { transform: rotate(-1.0deg) translateY(-15px); }
         .hero-title > span:nth-child(7)  { transform: rotate( 2.0deg) translateY(-15px); }
         .hero-title > span:nth-child(8)  { transform: rotate(-1.8deg) translateY(-13px); }
@@ -335,41 +324,33 @@ export default function Hero() {
           filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.15));
         }
 
-        /* Hollow sketch star – top left */
         .star-tl {
-          width: clamp(30px, 4.5vw, 48px);
+          width: clamp(20px, 4.5vw, 48px);
           top: -2px;
           left: clamp(2px, 1vw, 15px);
           transform-origin: center center;
           animation: pulse-float 3.2s ease-in-out infinite;
-          animation-delay: 0s;
         }
-
-        /* Hollow sketch star – top right */
         .star-tr {
-          width: clamp(28px, 4.2vw, 44px);
+          width: clamp(18px, 4.2vw, 44px);
           top: 0px;
-          right: clamp(6px, 1.5vw, 22px);
+          right: clamp(2px, 1.5vw, 22px);
           transform-origin: center center;
           animation: pulse-float-alt 2.8s ease-in-out infinite;
           animation-delay: 0.6s;
         }
-
-        /* Yellow filled star – left mid */
         .star-yl {
-          width: clamp(26px, 3.8vw, 40px);
-          bottom: clamp(6px, 1.5vh, 16px);
-          left: clamp(10px, 2.8vw, 32px);
+          width: clamp(16px, 3.8vw, 40px);
+          bottom: clamp(4px, 1.5vh, 16px);
+          left: clamp(4px, 2.8vw, 32px);
           transform-origin: center center;
           animation: pulse-float 3.6s ease-in-out infinite;
           animation-delay: 1.1s;
         }
-
-        /* Yellow filled star – right mid */
         .star-yr {
-          width: clamp(26px, 3.8vw, 40px);
-          bottom: clamp(6px, 1.5vh, 16px);
-          right: clamp(10px, 2.8vw, 32px);
+          width: clamp(16px, 3.8vw, 40px);
+          bottom: clamp(4px, 1.5vh, 16px);
+          right: clamp(4px, 2.8vw, 32px);
           transform-origin: center center;
           animation: pulse-float-alt 2.5s ease-in-out infinite;
           animation-delay: 0.3s;
@@ -378,8 +359,8 @@ export default function Hero() {
         /* ── Title Question Mark ── */
         .title-qmark-purple {
           position: absolute;
-          width: clamp(28px, 4.8vw, 50px);
-          right: clamp(35px, 6vw, 65px);
+          width: clamp(18px, 4.8vw, 50px);
+          right: clamp(24px, 6vw, 65px);
           top: clamp(-8px, -0.5vh, 4px);
           pointer-events: none;
           user-select: none;
@@ -392,34 +373,31 @@ export default function Hero() {
 
         /* ── Keyframes ── */
         @keyframes pulse-float {
-          0%   { transform: rotate(-10deg) scale(0.88) translateY(0px);   }
-          30%  { transform: rotate(-8deg)  scale(1.10) translateY(-5px);  }
-          60%  { transform: rotate(-12deg) scale(0.95) translateY(-2px);  }
-          100% { transform: rotate(-10deg) scale(0.88) translateY(0px);   }
+          0%   { transform: rotate(-10deg) scale(0.88) translateY(0px);  }
+          30%  { transform: rotate(-8deg)  scale(1.10) translateY(-5px); }
+          60%  { transform: rotate(-12deg) scale(0.95) translateY(-2px); }
+          100% { transform: rotate(-10deg) scale(0.88) translateY(0px);  }
         }
-
         @keyframes pulse-float-alt {
-          0%   { transform: rotate(14deg)  scale(0.90) translateY(0px);   }
-          35%  { transform: rotate(10deg)  scale(1.12) translateY(-6px);  }
-          65%  { transform: rotate(16deg)  scale(0.94) translateY(-2px);  }
-          100% { transform: rotate(14deg)  scale(0.90) translateY(0px);   }
+          0%   { transform: rotate(14deg)  scale(0.90) translateY(0px);  }
+          35%  { transform: rotate(10deg)  scale(1.12) translateY(-6px); }
+          65%  { transform: rotate(16deg)  scale(0.94) translateY(-2px); }
+          100% { transform: rotate(14deg)  scale(0.90) translateY(0px);  }
         }
-
         @keyframes wobble-qmark {
-          0%   { transform: rotate(-12deg) scale(0.90) translateY(0px); }
+          0%   { transform: rotate(-12deg) scale(0.90) translateY(0px);  }
           30%  { transform: rotate(-6deg)  scale(1.12) translateY(-4px); }
           65%  { transform: rotate(-14deg) scale(0.96) translateY(-1px); }
-          100% { transform: rotate(-12deg) scale(0.90) translateY(0px); }
+          100% { transform: rotate(-12deg) scale(0.90) translateY(0px);  }
         }
-
         @keyframes wobble-qmark-alt {
-          0%   { transform: rotate(14deg)  scale(0.90) translateY(0px); }
+          0%   { transform: rotate(14deg)  scale(0.90) translateY(0px);  }
           35%  { transform: rotate(8deg)   scale(1.14) translateY(-5px); }
           70%  { transform: rotate(16deg)  scale(0.95) translateY(-2px); }
-          100% { transform: rotate(14deg)  scale(0.90) translateY(0px); }
+          100% { transform: rotate(14deg)  scale(0.90) translateY(0px);  }
         }
 
-        /* ── Characters section outer wrapper ── */
+        /* ── Characters section ── */
         .chars-section {
           position: relative;
           display: flex;
@@ -428,10 +406,9 @@ export default function Hero() {
           width: 100%;
           max-width: 860px;
           flex-shrink: 1;
-          padding-top: clamp(0.5rem, 2vh, 1.8rem);
+          padding-top: clamp(0.1rem, 1vh, 1.2rem);
         }
 
-        /* ── Floating question marks around characters ── */
         .char-qmark {
           position: absolute;
           pointer-events: none;
@@ -441,52 +418,41 @@ export default function Hero() {
           filter: drop-shadow(2px 3px 0px rgba(0,0,0,0.18)) drop-shadow(0px 8px 14px rgba(0,0,0,0.22));
         }
 
-        /* Pink/Coral ? – left side lower */
         .cqm-pink {
-          width: clamp(22px, 3.4vw, 36px);
+          width: clamp(14px, 3.4vw, 36px);
           left: clamp(2%, 4%, 6%);
           top: 48%;
           animation: wobble-qmark 2.4s ease-in-out infinite;
           animation-delay: 0.8s;
         }
-
-        /* Purple ? – left side upper */
         .cqm-purple {
-          width: clamp(24px, 3.8vw, 40px);
+          width: clamp(16px, 3.8vw, 40px);
           left: clamp(6%, 8%, 11%);
           top: 24%;
           animation: wobble-qmark-alt 3.1s ease-in-out infinite;
           animation-delay: 0.2s;
         }
-
-        /* Green ? – center-left, above green character */
         .cqm-green1 {
-          width: clamp(28px, 4.4vw, 46px);
+          width: clamp(18px, 4.4vw, 46px);
           left: clamp(40%, 42%, 44%);
           top: clamp(-20px, -2.5vh, -8px);
           animation: wobble-qmark 2.8s ease-in-out infinite;
-          animation-delay: 0s;
         }
-
-        /* Green ? – center-right, slightly lower */
         .cqm-green2 {
-          width: clamp(18px, 2.8vw, 32px);
+          width: clamp(12px, 2.8vw, 32px);
           left: clamp(49%, 50.5%, 52%);
           top: clamp(-10px, -1.2vh, 0px);
           animation: wobble-qmark-alt 3.4s ease-in-out infinite;
           animation-delay: 0.5s;
         }
-
-        /* Blue ? – right side */
         .cqm-blue {
-          width: clamp(24px, 3.8vw, 40px);
+          width: clamp(16px, 3.8vw, 40px);
           right: clamp(3%, 5%, 8%);
           top: 26%;
           animation: wobble-qmark 2.6s ease-in-out infinite;
           animation-delay: 1.2s;
         }
 
-        /* ── Characters image wrapper (inner) ── */
         .characters-wrapper {
           position: relative;
           display: flex;
@@ -497,86 +463,36 @@ export default function Hero() {
           padding-bottom: 8px;
         }
 
-        /* ── Multi-tier 3D Ground Shadows ── */
-        
-        /* 1. Sharp dark contact shadow right beneath the bottom of the signs */
-        .ground-shadow-contact {
-          position: absolute;
-          bottom: 1px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 86%;
-          height: 14px;
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 0;
-          background: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 50%, transparent 80%);
-          filter: blur(4px);
-        }
-
-        /* 2. Mid diffusion shadow spreading softly outward */
-        .ground-shadow-mid {
-          position: absolute;
-          bottom: -4px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 93%;
-          height: 30px;
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 0;
-          background: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.22) 60%, transparent 85%);
-          filter: blur(12px);
-        }
-
-        /* 3. Deep ambient ground occlusion glow */
-        .ground-shadow-ambient {
-          position: absolute;
-          bottom: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          height: 52px;
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 0;
-          background: radial-gradient(ellipse at center, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.08) 65%, transparent 90%);
-          filter: blur(24px);
-        }
-
-        /* ── Characters 3D Image ── */
         .characters-img {
           position: relative;
           z-index: 1;
           width: auto;
           height: auto;
-          max-height: 43vh;
+          max-height: 38vh;
           max-width: 100%;
           object-fit: contain;
           filter:
-            drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.55))
-            drop-shadow(0px 8px 14px rgba(0, 0, 0, 0.38))
-            drop-shadow(0px 22px 28px rgba(0, 0, 0, 0.24))
-            drop-shadow(0px 40px 50px rgba(0, 0, 0, 0.15));
+            drop-shadow(0px 2px 3px rgba(0,0,0,0.55))
+            drop-shadow(0px 8px 14px rgba(0,0,0,0.38))
+            drop-shadow(0px 22px 28px rgba(0,0,0,0.24))
+            drop-shadow(0px 40px 50px rgba(0,0,0,0.15));
           transform: perspective(1200px) rotateX(1.8deg);
           transform-origin: bottom center;
           animation: character-breathe 5s ease-in-out infinite;
           transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
         }
-
         .characters-wrapper:hover .characters-img {
           transform: perspective(1200px) rotateX(0deg) translateY(-6px) scale(1.018);
           filter:
-            drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.6))
-            drop-shadow(0px 14px 20px rgba(0, 0, 0, 0.42))
-            drop-shadow(0px 32px 38px rgba(0, 0, 0, 0.28))
-            drop-shadow(0px 52px 60px rgba(0, 0, 0, 0.18));
+            drop-shadow(0px 4px 6px rgba(0,0,0,0.6))
+            drop-shadow(0px 14px 20px rgba(0,0,0,0.42))
+            drop-shadow(0px 32px 38px rgba(0,0,0,0.28))
+            drop-shadow(0px 52px 60px rgba(0,0,0,0.18));
         }
-
         @keyframes character-breathe {
-          0%   { transform: perspective(1200px) rotateX(1.8deg) translateY(0px) scale(1); }
+          0%   { transform: perspective(1200px) rotateX(1.8deg) translateY(0px)  scale(1);     }
           50%  { transform: perspective(1200px) rotateX(1.2deg) translateY(-5px) scale(1.012); }
-          100% { transform: perspective(1200px) rotateX(1.8deg) translateY(0px) scale(1); }
+          100% { transform: perspective(1200px) rotateX(1.8deg) translateY(0px)  scale(1);     }
         }
 
         /* ── Hero Buttons ── */
@@ -586,15 +502,19 @@ export default function Hero() {
           flex-direction: column;
           align-items: center;
           flex-shrink: 0;
-          padding-bottom: clamp(6px, 1.8vh, 16px);
+          padding-bottom: clamp(4px, 1.8vh, 16px);
+          width: 100%;
         }
 
         .hero-btns-row {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: clamp(10px, 1.8vw, 22px);
+          gap: clamp(8px, 1.8vw, 22px);
           position: relative;
+          flex-wrap: wrap;
+          width: 100%;
+          padding: 0 8px;
         }
 
         .btn-center-wrapper {
@@ -606,11 +526,12 @@ export default function Hero() {
 
         .hero-btn {
           font-family: 'CfCrayons', 'Comic Sans MS', cursive;
-          font-size: clamp(0.82rem, 1.25vw, 1.05rem);
+          /* 3.5vw → ~13px on 375px, ~18px on 520px, capped at 1.05rem on desktop */
+          font-size: clamp(0.7rem, 3.5vw, 1.05rem);
           font-weight: 900;
           letter-spacing: 0.05em;
           color: #1a1a1a;
-          padding: clamp(6px, 1.1vh, 10px) clamp(18px, 2.4vw, 32px);
+          padding: clamp(6px, 1.2vh, 10px) clamp(12px, 3.5vw, 32px);
           border-radius: 9999px;
           border: 2.5px solid #1a1a1a;
           box-shadow: 0 0 0 2px #ffffff, 2.5px 3.5px 0px 2px #1a1a1a, 0 8px 16px rgba(0,0,0,0.18);
@@ -618,12 +539,10 @@ export default function Hero() {
           white-space: nowrap;
           transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
-
         .hero-btn:hover {
           transform: translate(-1.5px, -2.5px);
           box-shadow: 0 0 0 2px #ffffff, 4px 5.5px 0px 2px #1a1a1a, 0 12px 20px rgba(0,0,0,0.22);
         }
-
         .hero-btn:active {
           transform: translate(1.5px, 1.5px);
           box-shadow: 0 0 0 2px #ffffff, 1px 1.5px 0px 2px #1a1a1a, 0 4px 8px rgba(0,0,0,0.15);
@@ -633,7 +552,6 @@ export default function Hero() {
         .btn-blue   { background: #4BBCF5; }
         .btn-yellow { background: #F5E442; }
 
-        /* Decorative curved arrows */
         .btn-arrow {
           width: clamp(22px, 3.2vw, 40px);
           height: auto;
@@ -642,7 +560,6 @@ export default function Hero() {
           user-select: none;
           filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.15));
         }
-
         .arrow-left  { margin-right: clamp(1px, 0.5vw, 4px); }
         .arrow-right { margin-left:  clamp(1px, 0.5vw, 4px); }
 
@@ -657,17 +574,39 @@ export default function Hero() {
           filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.15));
         }
 
-        /* Short screens: shrink further */
-        @media (max-height: 650px) {
-          .characters-img { max-height: 34vh; }
-          .hero-title { font-size: clamp(1.8rem, 4.8vw, 3.8rem); }
-          .btn-arrow-bottom { bottom: -16px; width: 24px; }
+        /* ── Phone portrait (≤ 480px) ── */
+        @media (max-width: 480px) {
+          .btn-arrow        { display: none; }
+          .btn-arrow-bottom { display: none; }
+          .hero-btns-row    { gap: 10px; }
+          .chars-section    { padding-top: 0; }
+          .characters-img   { max-height: 31vh; }
+          /* Slightly thinner stroke so letters don't look heavy on small screens */
+          .letter { -webkit-text-stroke: 1.8px #1a1a1a; }
         }
 
-        @media (max-width: 560px) {
-          .btn-arrow { display: none; }
-          .btn-arrow-bottom { display: none; }
-          .hero-btns-row { gap: 8px; }
+        /* ── Very narrow (≤ 360px – e.g. Galaxy A) ── */
+        @media (max-width: 360px) {
+          .hero-btn { padding: 6px 10px; }
+          .hero-btns-row { gap: 7px; }
+        }
+
+        /* ── Short screens (landscape phones) ── */
+        @media (max-height: 650px) {
+          .characters-img      { max-height: 29vh; }
+          .hero-title          { font-size: clamp(1.65rem, 7vw, 3.8rem); }
+          .btn-arrow-bottom    { bottom: -16px; width: 24px; }
+          .chars-section       { padding-top: 0; }
+          .hero-title-wrapper  { padding-top: 0; }
+        }
+
+        /* ── Very short (landscape tiny phones ≤ 500px height) ── */
+        @media (max-height: 500px) {
+          .characters-img    { max-height: 24vh; }
+          .char-qmark        { display: none; }
+          .deco-star         { display: none; }
+          .title-qmark-purple { display: none; }
+          .hero-title-wrapper { padding: 0 1.5rem; }
         }
       `}</style>
     </section>

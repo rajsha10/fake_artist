@@ -288,11 +288,11 @@ function LobbyContent() {
                 src={player.avatar} 
                 alt={player.name}
                 fill
-                className={styles.avatarImg}
+                style={{ objectFit: 'contain', padding: '8px' }}
                 unoptimized
               />
             </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{player.name}</div>
+            <div className={styles.playerName}>{player.name}</div>
             {player.isHost && (
               <div className={styles.hostBadge}>
                 👑 Host
@@ -305,7 +305,7 @@ function LobbyContent() {
       {/* Bottom section with start button (only for host) */}
       <footer>
         {isCurrentUserHost ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+          <div className={styles.hostFooter}>
             <ReusableButton 
               onClick={handleStartGame} 
               disabled={!canStartGame}
@@ -313,10 +313,10 @@ function LobbyContent() {
             >
               START GAME
             </ReusableButton>
-            {!canStartGame && <p style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Waiting for at least 3 players...</p>}
+            {!canStartGame && <p className={styles.waitingText}>Waiting for at least 3 players...</p>}
           </div>
         ) : (
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.8)', padding: '10px 20px', borderRadius: '12px', border: '3px solid black' }}>
+          <div className={styles.waitingForHost}>
             Waiting for host to start the game...
           </div>
         )}

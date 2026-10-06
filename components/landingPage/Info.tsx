@@ -117,7 +117,7 @@ export default function Info() {
     <div id="how-to-play" className="w-full relative selection:bg-yellow-200">
       
       {/* ── PANEL 1: How to play + 3 Steps (Flipped 180° vertically: scaleY(-1)) ── */}
-      <section className="relative w-full py-20 px-4 sm:px-6 md:px-8 overflow-hidden min-h-[90vh] flex flex-col justify-center">
+      <section className="relative w-full py-12 sm:py-20 px-4 sm:px-6 md:px-8 overflow-hidden sm:min-h-[90vh] flex flex-col justify-center">
         {/* Background flipped vertically so top corner scribbles seamlessly meet Hero's bottom */}
         <div className="absolute inset-0 z-0 pointer-events-none transform -scale-y-100">
           <Image
@@ -190,13 +190,14 @@ export default function Info() {
           </div>
 
           {/* 3 Step Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-8 pt-4">
             {steps.map((step, idx) => (
               <div
                 key={step.number}
-                className="doodle-card group relative p-6 sm:p-7 flex flex-col justify-between"
+                className="doodle-card group relative p-5 sm:p-7 flex flex-col justify-between"
                 style={{
-                  transform: idx === 0 ? 'rotate(-1.2deg)' : idx === 1 ? 'rotate(0.8deg)' : 'rotate(-0.8deg)',
+                  /* reduce tilt on mobile so cards don't clip inside the grid */
+                  transform: idx === 0 ? 'rotate(-0.6deg)' : idx === 1 ? 'rotate(0.4deg)' : 'rotate(-0.4deg)',
                 }}
               >
                 {/* Top tape doodle effect */}
@@ -238,7 +239,7 @@ export default function Info() {
       </section>
 
       {/* ── PANEL 2: Roles Comparison & Categories (Straight orientation: scaleY(1)) ── */}
-      <section className="relative w-full py-20 px-4 sm:px-6 md:px-8 overflow-hidden min-h-[90vh] flex flex-col justify-center border-t-2 border-dashed border-[#1a1a1a]/20">
+      <section className="relative w-full py-12 sm:py-20 px-4 sm:px-6 md:px-8 overflow-hidden sm:min-h-[90vh] flex flex-col justify-center border-t-2 border-dashed border-[#1a1a1a]/20">
         {/* Background straight so its top corner scribbles seamlessly meet Panel 1's bottom */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <Image
@@ -255,7 +256,7 @@ export default function Info() {
         <div className="relative z-10 max-w-5xl mx-auto w-full space-y-16">
           
           {/* Roles Comparison Card */}
-          <div className="doodle-paper-container p-6 sm:p-10 relative">
+          <div className="doodle-paper-container p-5 sm:p-10 relative">
             <div className="doodle-pin" />
 
             <div className="text-center mb-8">
@@ -340,7 +341,7 @@ export default function Info() {
               <DoodleStar className="w-6 h-6" color="#F5D800" />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {categories.map((c) => (
                 <div
                   key={c.name}
