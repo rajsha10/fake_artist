@@ -5,12 +5,12 @@ import type {
     Point,
     PublicGameState,
     Role,
+    RoomSettings,
     ServerMessage,
     Stroke,
 } from "@/types/game";
 import { WordManager } from "./WordManager";
 import { PLAYER_COLORS } from "@/config/ColorConfig";
-import next from "next";
 interface ConnectedPlayer {
     player: Player;
     socket: WebSocket;
@@ -22,6 +22,7 @@ export class GameRoom {
     private clients: Map<string, ConnectedPlayer> = new Map();
     private turnOrder: string[] = [];
     private currentTurnIndex: number = 0;
+    private maxPlayers: number = 10;
 
     //Game State for each room
     private phase: GamePhase = 'LOBBY';
@@ -40,19 +41,37 @@ export class GameRoom {
     private timer: NodeJS.Timeout | null = null;
     private timeLeft: number = 0;
 
+    private roomSettings: RoomSettings = {
+        drawingTime: 20,
+        votingTime: 10,
+        roleRevealTime: 8,
+        finalGuessTime: 25,
+        category: "Random",
+    };
+
     constructor(roomId: string) {
         this.roomId = roomId;
     }
 
     //player managements
-    public addPlayer(id: string, name: string, socket: WebSocket): Player {
+    public addPlayer(id: string, name: string, socket: WebSocket, maxPlayersRequested?: number): Player | null {
+        if (this.clients.size >= this.maxPlayers) {
+            return null; // Room is full
+        }
+
         const isHost = this.clients.size === 0;
+        
+        if (isHost && maxPlayersRequested !== undefined) {
+            this.maxPlayers = Math.max(3, Math.min(10, maxPlayersRequested));
+        }
+
         const color = PLAYER_COLORS[this.clients.size % PLAYER_COLORS.length];
 
         const player: Player = {
             id,
             name,
             color,
+            avatar: `/assets/Profiles/avatar_${(this.clients.size % 10) + 1}.jpg`,
             isHost,
             score: 0,
             hasDrawnThisRound: false,
@@ -63,6 +82,14 @@ export class GameRoom {
 
         this.broadcastState();
         return player;
+    }
+
+    public updateAvatar(playerId: string, avatar: string): void {
+        const cp = this.clients.get(playerId);
+        if (cp) {
+            cp.player.avatar = avatar;
+            this.broadcastState();
+        }
     }
 
     public removePlayer(id: string): void {
@@ -115,14 +142,17 @@ export class GameRoom {
         if (customCategory && customWord) {
             this.category = customCategory;
             this.secretWord = customWord;
-        } else if (customCategory) {
-            const entry = WordManager.getRandomWordFromCategory(customCategory);
-            this.category = entry.category;
-            this.secretWord = entry.word;
         } else {
-            const entry = WordManager.getRandomWord();
-            this.category = entry.category;
-            this.secretWord = entry.word;
+            const selectedCategory = customCategory ?? this.roomSettings.category;
+            if (selectedCategory === "Random" || !selectedCategory) {
+                const entry = WordManager.getRandomWord();
+                this.category = entry.category;
+                this.secretWord = entry.word;
+            } else {
+                const entry = WordManager.getRandomWordFromCategory(selectedCategory);
+                this.category = entry.category;
+                this.secretWord = entry.word;
+            }
         }
 
         const playerIds = Array.from(this.clients.keys());
@@ -156,7 +186,7 @@ export class GameRoom {
 
         //role reveal
         this.phase = 'ROLE_REVEAL';
-        this.startCountdown(8, () => {
+        this.startCountdown(this.roomSettings.roleRevealTime, () => {
             this.startRound(1);
         });
 
@@ -177,7 +207,7 @@ export class GameRoom {
         this.activePlayerId = this.turnOrder[this.currentTurnIndex];
         this.currentStroke = null;
 
-        this.startCountdown(20, () => {
+        this.startCountdown(this.roomSettings.drawingTime, () => {
             this.handleDrawEnd(this.activePlayerId!);
         });
 
@@ -234,6 +264,17 @@ export class GameRoom {
         });
     }
 
+    public handleDrawMoveBatch(playerId: string, points: Point[]): void {
+        if (!this.currentStroke || this.currentStroke.playerId !== playerId) return;
+        if (this.activePlayerId !== playerId) return;
+        this.currentStroke.points.push(...points);
+        this.broadcast({
+            type: 'STROKE_POINTS',
+            strokeId: this.currentStroke.id,
+            points,
+        });
+    }
+
     public handleDrawEnd(playerId: string): void {
         if (this.activePlayerId !== playerId) return;
         const cp = this.clients.get(playerId);
@@ -261,7 +302,7 @@ export class GameRoom {
             cp.player.votedForId = null;
         }
 
-        this.startCountdown(10, () => {
+        this.startCountdown(this.roomSettings.votingTime, () => {
             this.evaluateVotes();
         });
         this.broadcastState();
@@ -328,7 +369,7 @@ export class GameRoom {
         this.phase = 'FINAL_GUESS';
         this.accusedPlayerId = this.fakeArtistId;
 
-        this.startCountdown(25, () => {
+        this.startCountdown(this.roomSettings.finalGuessTime, () => {
             this.endGame(
                 'REAL_ARTISTS',
                 `Time ran out! The Fake Artist (${this.clients.get(this.fakeArtistId)?.player.name}) failed to guess the secret word "${this.secretWord}".`
@@ -400,6 +441,32 @@ export class GameRoom {
         this.broadcastState();
     }
 
+    public updateSettings(playerId: string, newSettings: Partial<RoomSettings>): boolean {
+        const player = this.clients.get(playerId);
+        if (!player || !player.player.isHost) {
+            return false;
+        }
+
+        if (newSettings.drawingTime !== undefined) {
+            this.roomSettings.drawingTime = Math.max(10, Math.min(120, newSettings.drawingTime));
+        }
+        if (newSettings.votingTime !== undefined) {
+            this.roomSettings.votingTime = Math.max(5, Math.min(60, newSettings.votingTime));
+        }
+        if (newSettings.roleRevealTime !== undefined) {
+            this.roomSettings.roleRevealTime = Math.max(3, Math.min(30, newSettings.roleRevealTime));
+        }
+        if (newSettings.finalGuessTime !== undefined) {
+            this.roomSettings.finalGuessTime = Math.max(10, Math.min(120, newSettings.finalGuessTime));
+        }
+        if (newSettings.category !== undefined) {
+            this.roomSettings.category = newSettings.category.slice(0, 50); // limit string length
+        }
+
+        this.broadcastState();
+        return true;
+    }
+
     //time utilities
     private clearTimer(): void {
         if (this.timer) {
@@ -452,12 +519,14 @@ export class GameRoom {
             currentRound: this.currentRound,
             activePlayerId: this.activePlayerId,
             turnTimeLeft: this.timeLeft,
+            maxPlayers: this.maxPlayers,
             players: Array.from(this.clients.values()).map((cp) => cp.player),
             strokes: this.strokes,
             hostId: this.getHostId(),
             accusedPlayerId: this.accusedPlayerId,
             winner: this.winner,
             winnerReason: this.winnerReason,
+            settings: this.roomSettings,
         };
     }
 }

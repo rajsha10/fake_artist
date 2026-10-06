@@ -10,6 +10,7 @@ import GameCanvas from '../../components/Lobby/GameCanvas';
 import VotingScreen from '../../components/Lobby/VotingScreen';
 import FinalGuessScreen from '../../components/Lobby/FinalGuessScreen';
 import GameOverScreen from '../../components/Game/GameOverScreen';
+import type { RoomSettings } from '@/types/game';
 import styles from './Lobby.module.css';
 
 // Load the custom crayon font
@@ -41,8 +42,11 @@ function LobbyContent() {
   const router = useRouter();
   const roomCode = searchParams.get('code') || 'K9X2';
   const playerName = searchParams.get('name') || 'Guest';
+  const maxPlayersParam = searchParams.get('maxPlayers');
+  const maxPlayers = maxPlayersParam ? parseInt(maxPlayersParam, 10) : undefined;
 
   const [activePlayers, setActivePlayers] = useState<any[]>([]);
+  const [roomMaxPlayers, setRoomMaxPlayers] = useState<number>(10);
   const [phase, setPhase] = useState<string>('LOBBY');
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [roleInfo, setRoleInfo] = useState<{ role: string; category: string; word: string } | null>(null);
@@ -50,6 +54,16 @@ function LobbyContent() {
   const [votingResults, setVotingResults] = useState<{ votes: Record<string, string[]>, fakeArtistCaught: boolean } | null>(null);
   const [accusedPlayerId, setAccusedPlayerId] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<{ winner: string; secretWord: string; reason: string } | null>(null);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [roomSettings, setRoomSettings] = useState<RoomSettings>({
+    drawingTime: 20,
+    votingTime: 10,
+    roleRevealTime: 8,
+    finalGuessTime: 25,
+    category: 'Random',
+  });
+
+  const AVATAR_OPTIONS = Array.from({length: 10}, (_, i) => `/assets/Profiles/avatar_${i + 1}.jpg`);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -70,7 +84,8 @@ function LobbyContent() {
       ws.send(JSON.stringify({
         type: 'JOIN_ROOM',
         roomId: roomCode,
-        name: playerName
+        name: playerName,
+        maxPlayers
       }));
     };
 
@@ -88,14 +103,19 @@ function LobbyContent() {
           if (msg.state.accusedPlayerId !== undefined) {
             setAccusedPlayerId(msg.state.accusedPlayerId);
           }
+          if (msg.state.maxPlayers !== undefined) {
+            setRoomMaxPlayers(msg.state.maxPlayers);
+          }
+          if (msg.state.settings) {
+            setRoomSettings(msg.state.settings);
+          }
           if (msg.state.players) {
             // Map server players to our avatar display list
             const updatedPlayers = msg.state.players.map((p: any, index: number) => ({
               id: p.id,
               name: p.name,
               color: p.color,
-              // Cycle through our 10 generated avatars based on index
-              avatar: `/assets/Profiles/avatar_${(index % 10) + 1}.jpg`,
+              avatar: p.avatar,
               isHost: p.isHost,
               score: p.score
             }));
@@ -143,11 +163,29 @@ function LobbyContent() {
       ws.removeEventListener('error', handleError);
       ws.close();
     };
-  }, [roomCode, playerName]);
+  }, [roomCode, playerName, maxPlayers]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomCode);
     alert('Room code copied!');
+  };
+
+  const handleLocalSettingChange = (newSetting: Partial<RoomSettings>) => {
+    setRoomSettings((prev) => ({ ...prev, ...newSetting }));
+  };
+
+  const commitSettingsUpdate = (newSetting: Partial<RoomSettings>) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'UPDATE_SETTINGS',
+        settings: newSetting,
+      }));
+    }
+  };
+
+  const handleUpdateSetting = (newSetting: Partial<RoomSettings>) => {
+    handleLocalSettingChange(newSetting);
+    commitSettingsUpdate(newSetting);
   };
 
   const handleStartGame = () => {
@@ -155,27 +193,10 @@ function LobbyContent() {
       alert('Need at least 3 players to start!');
       return;
     }
-
-    // Word Bank
-    const wordBank = {
-      'Animals': ['Cat', 'Dog', 'Elephant', 'Penguin', 'Shark', 'Lion', 'Giraffe', 'Octopus'],
-      'Food & Drinks': ['Pizza', 'Sushi', 'Taco', 'Hamburger', 'Ice Cream', 'Pancake', 'Coffee'],
-      'Everyday Objects': ['Guitar', 'Clock', 'Camera', 'Television', 'Toothbrush', 'Umbrella'],
-      'Places & Landmarks': ['Eiffel Tower', 'Pyramids', 'Hospital', 'School', 'Beach', 'Castle'],
-      'Vehicles': ['Rocket', 'Submarine', 'Helicopter', 'Bicycle', 'Train', 'Ambulance'],
-      'Fashion & Style': ['Sunglasses', 'Crown', 'Hoodie', 'Sneakers', 'Backpack', 'Watch']
-    };
-
-    const categories = Object.keys(wordBank);
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    const wordsInCategory = wordBank[randomCategory as keyof typeof wordBank];
-    const randomWord = wordsInCategory[Math.floor(Math.random() * wordsInCategory.length)];
     
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'START_GAME',
-        category: randomCategory,
-        word: randomWord
       }));
     } else {
       alert('WebSocket is not connected!');
@@ -283,7 +304,16 @@ function LobbyContent() {
         {activePlayers.length === 0 && <div>Waiting for players...</div>}
         {activePlayers.map((player, index) => (
           <div key={player.id} className={styles.avatarSlot}>
-            <div className={`${styles.avatarImageWrapper} ${styles[`border${index % 6}`]}`}>
+            <div 
+              className={`${styles.avatarImageWrapper} ${styles[`border${index % 6}`]}`}
+              style={player.id === myPlayerId ? { cursor: 'pointer' } : {}}
+              onClick={() => {
+                if (player.id === myPlayerId) {
+                  setIsAvatarModalOpen(true);
+                }
+              }}
+              title={player.id === myPlayerId ? "Click to change avatar" : ""}
+            >
               <Image 
                 src={player.avatar} 
                 alt={player.name}
@@ -291,6 +321,14 @@ function LobbyContent() {
                 style={{ objectFit: 'contain', padding: '8px' }}
                 unoptimized
               />
+              {player.id === myPlayerId && (
+                <div className={styles.editIconBadge}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </div>
+              )}
             </div>
             <div className={styles.playerName}>{player.name}</div>
             {player.isHost && (
@@ -306,6 +344,119 @@ function LobbyContent() {
       <footer>
         {isCurrentUserHost ? (
           <div className={styles.hostFooter}>
+            <div className={styles.settingsPanel}>
+              <div className={styles.settingsHeader}>
+                <span className={styles.settingsTitle}>⚙️ Host Game Settings</span>
+                <span className={styles.settingsBadge}>👑 HOST</span>
+              </div>
+
+              <div className={styles.settingsGrid}>
+                <div className={styles.settingItemFull}>
+                  <label className={styles.settingLabel} htmlFor="category-select">
+                    📁 Word Category
+                  </label>
+                  <select
+                    id="category-select"
+                    className={styles.settingSelect}
+                    value={roomSettings.category}
+                    onChange={(e) => handleUpdateSetting({ category: e.target.value })}
+                  >
+                    <option value="Random">🎲 Random (All Categories)</option>
+                    <option value="Food & Drinks">🍕 Food & Drinks</option>
+                    <option value="Animals">🦁 Animals</option>
+                    <option value="Everyday Objects">🎸 Everyday Objects</option>
+                    <option value="Places & Landmarks">🗼 Places & Landmarks</option>
+                    <option value="Vehicles">🚀 Vehicles</option>
+                    <option value="Clothing & Fashion">🕶️ Clothing & Fashion</option>
+                  </select>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <label className={styles.settingLabel} htmlFor="draw-time-slider">
+                    ✏️ Drawing Time
+                  </label>
+                  <div className={styles.sliderRow}>
+                    <input
+                      id="draw-time-slider"
+                      type="range"
+                      min="10"
+                      max="60"
+                      step="5"
+                      className={styles.sliderInput}
+                      value={roomSettings.drawingTime}
+                      onChange={(e) => handleLocalSettingChange({ drawingTime: Number(e.target.value) })}
+                      onMouseUp={(e) => commitSettingsUpdate({ drawingTime: Number(e.currentTarget.value) })}
+                      onTouchEnd={(e) => commitSettingsUpdate({ drawingTime: Number(e.currentTarget.value) })}
+                    />
+                    <span className={styles.sliderValue}>{roomSettings.drawingTime}s</span>
+                  </div>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <label className={styles.settingLabel} htmlFor="vote-time-slider">
+                    🗳️ Voting Time
+                  </label>
+                  <div className={styles.sliderRow}>
+                    <input
+                      id="vote-time-slider"
+                      type="range"
+                      min="5"
+                      max="30"
+                      step="1"
+                      className={styles.sliderInput}
+                      value={roomSettings.votingTime}
+                      onChange={(e) => handleLocalSettingChange({ votingTime: Number(e.target.value) })}
+                      onMouseUp={(e) => commitSettingsUpdate({ votingTime: Number(e.currentTarget.value) })}
+                      onTouchEnd={(e) => commitSettingsUpdate({ votingTime: Number(e.currentTarget.value) })}
+                    />
+                    <span className={styles.sliderValue}>{roomSettings.votingTime}s</span>
+                  </div>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <label className={styles.settingLabel} htmlFor="reveal-time-slider">
+                    🎭 Role Reveal
+                  </label>
+                  <div className={styles.sliderRow}>
+                    <input
+                      id="reveal-time-slider"
+                      type="range"
+                      min="3"
+                      max="15"
+                      step="1"
+                      className={styles.sliderInput}
+                      value={roomSettings.roleRevealTime}
+                      onChange={(e) => handleLocalSettingChange({ roleRevealTime: Number(e.target.value) })}
+                      onMouseUp={(e) => commitSettingsUpdate({ roleRevealTime: Number(e.currentTarget.value) })}
+                      onTouchEnd={(e) => commitSettingsUpdate({ roleRevealTime: Number(e.currentTarget.value) })}
+                    />
+                    <span className={styles.sliderValue}>{roomSettings.roleRevealTime}s</span>
+                  </div>
+                </div>
+
+                <div className={styles.settingItem}>
+                  <label className={styles.settingLabel} htmlFor="guess-time-slider">
+                    🔍 Final Guess
+                  </label>
+                  <div className={styles.sliderRow}>
+                    <input
+                      id="guess-time-slider"
+                      type="range"
+                      min="10"
+                      max="60"
+                      step="5"
+                      className={styles.sliderInput}
+                      value={roomSettings.finalGuessTime}
+                      onChange={(e) => handleLocalSettingChange({ finalGuessTime: Number(e.target.value) })}
+                      onMouseUp={(e) => commitSettingsUpdate({ finalGuessTime: Number(e.currentTarget.value) })}
+                      onTouchEnd={(e) => commitSettingsUpdate({ finalGuessTime: Number(e.currentTarget.value) })}
+                    />
+                    <span className={styles.sliderValue}>{roomSettings.finalGuessTime}s</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <ReusableButton 
               onClick={handleStartGame} 
               disabled={!canStartGame}
@@ -313,7 +464,8 @@ function LobbyContent() {
             >
               START GAME
             </ReusableButton>
-            {!canStartGame && <p className={styles.waitingText}>Waiting for at least 3 players...</p>}
+            <p className={styles.waitingText}>Players: {activePlayers.length} / {roomMaxPlayers}</p>
+            {!canStartGame && <p className={styles.waitingText} style={{ fontSize: '1rem', color: '#666' }}>(Need at least 3 players to start)</p>}
           </div>
         ) : (
           <div className={styles.waitingForHost}>
@@ -321,6 +473,40 @@ function LobbyContent() {
           </div>
         )}
       </footer>
+
+      {/* Avatar Picker Modal */}
+      {isAvatarModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsAvatarModalOpen(false)}>
+          <div className={styles.avatarModal} onClick={e => e.stopPropagation()}>
+            <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Choose your Avatar</h2>
+            <div className={styles.avatarGrid}>
+              {AVATAR_OPTIONS.map((avatarUrl, i) => (
+                <div 
+                  key={i} 
+                  className={styles.avatarOption} 
+                  onClick={() => {
+                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                      wsRef.current.send(JSON.stringify({ type: 'UPDATE_AVATAR', avatar: avatarUrl }));
+                    }
+                    setIsAvatarModalOpen(false);
+                  }}
+                >
+                  <Image src={avatarUrl} alt="Avatar option" fill style={{ objectFit: 'contain' }} unoptimized />
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <button 
+                className={styles.exitButton} 
+                style={{ position: 'relative', top: '0', left: '0', margin: '0 auto' }} 
+                onClick={() => setIsAvatarModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

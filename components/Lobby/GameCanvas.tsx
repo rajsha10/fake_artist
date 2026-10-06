@@ -26,6 +26,8 @@ export default function GameCanvas({
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const strokesRef = useRef<any[]>([]);
+  const batchPointsRef = useRef<{x: number, y: number}[]>([]);
+  const lastSendTimeRef = useRef<number>(0);
   const [isDrawing, setIsDrawing] = useState(false);
 
   const isMyTurn = Boolean(myPlayerId && activePlayerId && myPlayerId === activePlayerId);
@@ -102,6 +104,14 @@ export default function GameCanvas({
             ctx.lineTo(msg.point.x, msg.point.y);
             ctx.stroke();
           }
+        } else if (msg.type === 'STROKE_POINTS') {
+          // Process batched remote stroke points
+          if (ctx && (!isDrawing || !isMyTurn) && msg.points && msg.points.length > 0) {
+            msg.points.forEach((p: any) => {
+              ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+          }
         } else if (msg.type === 'STROKE_FINISH') {
           if (msg.stroke) {
             strokesRef.current.push(msg.stroke);
@@ -158,6 +168,8 @@ export default function GameCanvas({
     const point = getCoordinates(e);
 
     // Broadcast stroke start
+    batchPointsRef.current = [];
+    lastSendTimeRef.current = Date.now();
     ws.send(JSON.stringify({ type: 'DRAW_START', point }));
 
     // Instant local feedback
@@ -176,8 +188,17 @@ export default function GameCanvas({
     if (!isDrawing || !isMyTurn || !ws || ws.readyState !== WebSocket.OPEN) return;
     const point = getCoordinates(e);
 
-    // Broadcast stroke coordinate
-    ws.send(JSON.stringify({ type: 'DRAW_MOVE', point }));
+    // Batch points for broadcasting
+    batchPointsRef.current.push(point);
+    const now = Date.now();
+    
+    if (now - lastSendTimeRef.current >= 50) {
+      if (batchPointsRef.current.length > 0) {
+        ws.send(JSON.stringify({ type: 'DRAW_MOVE_BATCH', points: [...batchPointsRef.current] }));
+        batchPointsRef.current = [];
+      }
+      lastSendTimeRef.current = now;
+    }
 
     // Instant local render
     const ctx = canvasRef.current?.getContext('2d');
@@ -190,12 +211,59 @@ export default function GameCanvas({
   const stopDrawing = () => {
     if (!isDrawing || !isMyTurn || !ws || ws.readyState !== WebSocket.OPEN) return;
     setIsDrawing(false);
+    // Flush any remaining points
+    if (batchPointsRef.current.length > 0) {
+      ws.send(JSON.stringify({ type: 'DRAW_MOVE_BATCH', points: [...batchPointsRef.current] }));
+      batchPointsRef.current = [];
+    }
+
     // Ending the stroke advances the turn on the backend
     ws.send(JSON.stringify({ type: 'DRAW_END' }));
   };
 
   return (
-    <div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 max-w-7xl w-full mx-auto select-none">
+    <div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 max-w-[1400px] w-full mx-auto select-none px-4">
+      {/* Left Players Panel */}
+      <div className="flex flex-col bg-[#FAF8F5] p-4 md:p-5 rounded-3xl border-4 border-[#1a1a1a] shadow-[0_12px_0_rgba(0,0,0,1)] w-full lg:w-64 xl:w-72 shrink-0">
+        <h3 className="text-lg md:text-xl font-black text-[#1a1a1a] mb-3 md:mb-4 text-center tracking-wide uppercase">
+          Players
+        </h3>
+        <div className="flex flex-row lg:flex-col gap-3 overflow-x-auto pb-2 lg:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {players.map((p) => {
+            const isActive = p.id === activePlayerId;
+            const isMe = p.id === myPlayerId;
+            return (
+              <div
+                key={p.id}
+                className={`flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-xl border-3 transition-all shrink-0 min-w-[140px] lg:min-w-0 ${
+                  isActive
+                    ? 'border-[#1a1a1a] bg-[#FFE66D] shadow-[2px_3px_0px_#1a1a1a] scale-105 font-black'
+                    : 'border-transparent bg-white shadow-sm font-bold opacity-90 hover:opacity-100'
+                }`}
+              >
+                {p.avatar && (
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#1a1a1a] shadow-sm shrink-0 bg-gray-200">
+                    <Image src={p.avatar} alt={p.name} fill className="object-cover" unoptimized />
+                  </div>
+                )}
+                <span
+                  className="w-4 h-4 rounded-full border-2 border-[#1a1a1a] shadow-sm shrink-0"
+                  style={{ backgroundColor: p.color || '#999' }}
+                />
+                <span className="text-sm md:text-base text-[#1a1a1a] truncate flex-1">
+                  {p.name} {isMe ? '(You)' : ''}
+                </span>
+                {isActive && (
+                  <span className="text-sm shrink-0 animate-bounce" title="Drawing now!">
+                    🖌️
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Left / Center Main Canvas Card */}
       <div className="flex flex-col items-center bg-[#FAF8F5] p-5 md:p-7 rounded-3xl border-4 border-[#1a1a1a] shadow-[0_12px_0_rgba(0,0,0,1)] w-full max-w-4xl flex-1">
         {/* Top Status Bar */}
@@ -233,36 +301,6 @@ export default function GameCanvas({
           </div>
         </div>
 
-        {/* Players Palette / Turn Indicator Legend */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 w-full bg-white/80 p-2.5 rounded-2xl border-2 border-[#1a1a1a] mb-4 shadow-inner">
-          {players.map((p) => {
-            const isActive = p.id === activePlayerId;
-            const isMe = p.id === myPlayerId;
-            return (
-              <div
-                key={p.id}
-                className={`flex items-center gap-2 px-2.5 py-1 rounded-xl border-2 transition-all ${
-                  isActive
-                    ? 'border-[#1a1a1a] bg-[#FFE66D] shadow-[2px_2px_0px_#1a1a1a] scale-105 font-black'
-                    : 'border-transparent bg-gray-100/80 font-bold opacity-80'
-                }`}
-              >
-                {p.avatar && (
-                  <div className="relative w-5 h-5 rounded-full overflow-hidden border border-black">
-                    <Image src={p.avatar} alt={p.name} fill className="object-cover" unoptimized />
-                  </div>
-                )}
-                <span
-                  className="w-3 h-3 rounded-full border border-black shadow-sm"
-                  style={{ backgroundColor: p.color || '#999' }}
-                />
-                <span className="text-xs md:text-sm text-[#1a1a1a]">
-                  {p.name} {isMe ? '(You)' : ''}
-                </span>
-              </div>
-            );
-          })}
-        </div>
 
         {/* The Drawing Canvas Area */}
         <div className="relative w-full max-w-[800px] aspect-[8/5] rounded-2xl border-4 border-[#1a1a1a] overflow-hidden bg-white shadow-inner">

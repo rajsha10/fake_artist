@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fake Artist — The Social Deduction Drawing Game",
+  title: "Fake Artist",
   description: "A multiplayer party game of drawing, bluffing, and mystery. Can you spot the fake artist?",
 };
 

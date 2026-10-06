@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 interface CreateGameProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (roomCode: string, nickname: string) => void;
+  onCreate: (roomCode: string, nickname: string, maxPlayers: number) => void;
 }
 
 /**
@@ -41,6 +41,7 @@ function useKeyboardOffset(): number {
 
 export default function CreateGame({ isOpen, onClose, onCreate }: CreateGameProps) {
   const [nickname, setNickname] = useState('');
+  const [maxPlayers, setMaxPlayers] = useState(10);
   const keyboardOffset = useKeyboardOffset();
 
   if (!isOpen) return null;
@@ -49,7 +50,7 @@ export default function CreateGame({ isOpen, onClose, onCreate }: CreateGameProp
     e.preventDefault();
     if (nickname.trim()) {
       const generatedCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-      onCreate(generatedCode, nickname.trim());
+      onCreate(generatedCode, nickname.trim(), maxPlayers);
     }
   };
 
@@ -184,6 +185,29 @@ export default function CreateGame({ isOpen, onClose, onCreate }: CreateGameProp
                   required
                   autoFocus
                 />
+              </div>
+            </div>
+
+            {/* Max Players */}
+            <div className="flex flex-col items-center gap-1.5 w-full mt-2">
+              <label htmlFor="maxPlayersInput" className="text-lg sm:text-xl font-bold text-[#1a1a1a]">
+                Max Players ({maxPlayers})
+              </label>
+              <div className="w-full max-w-[320px]">
+                <input
+                  id="maxPlayersInput"
+                  type="range"
+                  min={3}
+                  max={10}
+                  step={1}
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(parseInt(e.target.value, 10))}
+                  className="w-full accent-[#38BDF8]"
+                />
+                <div className="flex justify-between w-full text-sm font-bold text-gray-500 mt-1 px-1">
+                  <span>3</span>
+                  <span>10</span>
+                </div>
               </div>
             </div>
 

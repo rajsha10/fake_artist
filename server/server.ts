@@ -17,7 +17,7 @@ wss.on('connection', (socket: WebSocket) => {
 
             //join room
             if (msg.type === 'JOIN_ROOM') {
-                const { roomId, name } = msg;
+                const { roomId, name, maxPlayers } = msg;
                 if (!roomId || !name) {
                     socket.send(
                         JSON.stringify({
@@ -32,8 +32,16 @@ wss.on('connection', (socket: WebSocket) => {
                 const playerId = `p-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
                 const room = roomManager.getOrCreateRoom(normalizedRoomId);
 
+                const player = room.addPlayer(playerId, name.trim(), socket, maxPlayers);
+                if (!player) {
+                    socket.send(JSON.stringify({
+                        type: 'ERROR',
+                        message: 'Room is full!',
+                    }));
+                    return;
+                }
+                
                 roomManager.registerSession(socket, normalizedRoomId, playerId);
-                room.addPlayer(playerId, name.trim(), socket);
 
                 console.log(`[Server] Player "${name}" (${playerId}) joined Room: ${normalizedRoomId}`);
                 return;
@@ -74,6 +82,10 @@ wss.on('connection', (socket: WebSocket) => {
                     room?.handleDrawMove(playerId, msg.point);
                     break;
 
+                case 'DRAW_MOVE_BATCH':
+                    room?.handleDrawMoveBatch(playerId, msg.points);
+                    break;
+
                 case 'DRAW_END':
                     room?.handleDrawEnd(playerId);
                     break;
@@ -88,6 +100,14 @@ wss.on('connection', (socket: WebSocket) => {
 
                 case 'RESTART_GAME':
                     room?.restartGame(playerId);
+                    break;
+
+                case 'UPDATE_AVATAR':
+                    room?.updateAvatar(playerId, msg.avatar);
+                    break;
+
+                case 'UPDATE_SETTINGS':
+                    room?.updateSettings(playerId, msg.settings);
                     break;
 
                 default:

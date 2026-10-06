@@ -140,7 +140,7 @@
   height: 110px;
   border-radius: 24px;
   border: 4px solid #000;
-  overflow: hidden;
+  overflow: visible;
   background: white;
   position: relative;
   /* Add inner white border simulation */
@@ -268,6 +268,173 @@
   gap: 10px;
 }
 
+/* ─── Host Settings Panel ──────────────────────── */
+.settingsPanel,
+.settingsCard {
+  background: rgba(255, 255, 255, 0.97);
+  border: 3.5px solid black;
+  border-radius: 16px;
+  padding: 1.1rem 1.35rem;
+  box-shadow: 4px 6px 0px black;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 540px;
+  box-sizing: border-box;
+}
+
+.settingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2.5px dashed rgba(0, 0, 0, 0.25);
+  padding-bottom: 0.5rem;
+}
+
+.settingsTitle {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+.settingsBadge {
+  font-size: 0.85rem;
+  background: #ffe66d;
+  color: black;
+  border: 2px solid black;
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-weight: bold;
+  box-shadow: 2px 2px 0px black;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.settingItemFull {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settingItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settingLabel {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #222;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.settingSelect {
+  background: #ffffff;
+  border: 2.5px solid black;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: bold;
+  color: black;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 2px 3px 0px black;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.settingSelect:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 4px 0px black;
+}
+
+.settingSelect:focus {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 4px 0px black;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider,
+.sliderInput {
+  flex: 1;
+  height: 12px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #f1f2f6;
+  border: 2px solid black;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-webkit-slider-thumb,
+.sliderInput::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: 2px solid black;
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0px black;
+  transition: transform 0.1s;
+}
+
+.slider::-webkit-slider-thumb:hover,
+.sliderInput::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.slider::-moz-range-thumb,
+.sliderInput::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: 2px solid black;
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0px black;
+  transition: transform 0.1s;
+}
+
+.slider::-moz-range-thumb:hover,
+.sliderInput::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+.sliderValue {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  background: white;
+  border: 2px solid black;
+  border-radius: 8px;
+  padding: 3px 8px;
+  min-width: 44px;
+  text-align: center;
+  box-shadow: 2px 2px 0px black;
+}
+
 .waitingText {
   font-weight: bold;
   font-size: 1.2rem;
@@ -300,5 +467,127 @@
     border-radius: 10px;
     border-width: 2px;
   }
+
+  /* Responsive Settings Panel for Mobile */
+  .settingsPanel,
+  .settingsCard {
+    padding: 0.75rem 0.85rem;
+    max-width: 95vw;
+    border-width: 3px;
+    box-shadow: 3px 4px 0px black;
+    gap: 0.65rem;
+  }
+
+  .settingsTitle {
+    font-size: 1.1rem;
+  }
+
+  .settingsGrid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .settingLabel {
+    font-size: 0.9rem;
+  }
+
+  .settingSelect {
+    font-size: 0.9rem;
+    padding: 6px 10px;
+  }
+
+  .sliderRow {
+    gap: 8px;
+  }
+
+  .slider::-webkit-slider-thumb,
+  .sliderInput::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .slider::-moz-range-thumb,
+  .sliderInput::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .sliderValue {
+    font-size: 0.85rem;
+    min-width: 40px;
+    padding: 2px 6px;
+  }
 }
 
+
+/* ─── Avatar Modal ─────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.avatarModal {
+  background: white;
+  border: 4px solid black;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 90vw;
+  width: 600px;
+  box-shadow: 8px 12px 0px black;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 15px;
+  justify-items: center;
+}
+
+.avatarOption {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  border: 3px solid black;
+  border-radius: 12px;
+  cursor: pointer;
+  background: white;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.avatarOption:hover {
+  transform: translate(-2px, -2px) scale(1.05);
+  box-shadow: 4px 4px 0px black;
+}
+
+.editIconBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: white;
+  border: 3px solid black;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 0px black;
+  z-index: 10;
+  transition: transform 0.2s;
+}
+
+.editIconBadge svg {
+  width: 16px;
+  height: 16px;
+  stroke: black;
+}
+
+.avatarImageWrapper:hover .editIconBadge {
+  transform: scale(1.1) rotate(10deg);
+}

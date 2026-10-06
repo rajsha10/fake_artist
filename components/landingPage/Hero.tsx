@@ -58,8 +58,8 @@ export default function Hero() {
     router.push(`/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`);
   };
 
-  const handleCreateGame = (roomCode: string, nickname: string) => {
-    router.push(`/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}`);
+  const handleCreateGame = (roomCode: string, nickname: string, maxPlayers: number) => {
+    router.push(`/lobby?code=${roomCode.toUpperCase()}&name=${encodeURIComponent(nickname)}&maxPlayers=${maxPlayers}`);
   };
 
   return (
